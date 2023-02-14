@@ -1,0 +1,224 @@
+import sys
+import subprocess
+import time
+
+try:
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 
+    'tk'])
+except:
+    print('tkinter installation failed')
+try:
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 
+    'pandas'])
+except:
+    print('pandas installation failed')
+try:
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 
+    'numpy'])
+except:
+    print('numpy installation failed')
+try:
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 
+    'asyncio'])
+except:
+    print('asyncio installation failed')
+try:
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 
+    'pyperclip'])
+except:
+    print('pyperclip installation failed')
+try:
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 
+    'pyautogui'])
+except:
+    print('pyautogui installation failed')
+
+import tkinter as tk
+from tkinter import *
+from tkinter import font as tkfont
+import csv
+import pandas as pd
+from pandas import read_csv
+import numpy as np
+from asyncio import *
+from asyncio import StreamReader
+import asyncio
+import pyperclip
+import pyautogui as pya
+
+try:
+    class My_GUI(tk.Tk):
+
+        def __init__(self, *args, **kwargs):
+            tk.Tk.__init__(self, *args, **kwargs)
+
+            self.title_font = tkfont.Font(family='Helvetica', size=18, weight="bold", slant="italic")
+
+            container = tk.Frame(self)
+            container.pack(side="top", fill="both", expand=True)
+            container.grid_rowconfigure(0, weight=1)
+            container.grid_columnconfigure(0, weight=1)
+
+            self.frames = {}
+            for F in (StartPage, Page_2, Page_3, Page_4):
+                page_name = F.__name__
+                frame = F(parent=container, controller=self)
+                self.frames[page_name] = frame
+
+                frame.grid(row=0, column=0, sticky="nsew")
+
+            self.show_frame("StartPage")
+
+        def show_frame(self, page_name):
+            '''Show a frame for the given page name'''
+            frame = self.frames[page_name]
+            frame.tkraise() 
+
+    class StartPage(tk.Frame):
+
+        #Restore CSV original to backup
+        def csvRestore(self):
+            target=open('grocery_data.csv', mode="w+")
+            backup=read_csv('grocery_data_backup_original.csv')
+            with target as file:
+                file.truncate()
+                file.close()
+            df_bak=pd.DataFrame(backup)
+            df_bak.to_csv('grocery_data.csv', index=False,sep=',', header=True)
+
+        #Save current data to current-state CSV file
+        def csvSave(self):
+            target = open('grocery_data.csv', mode="w+")
+            with target as file:
+                target.truncate()
+                target.close()
+            df_bak = pd.DataFrame(mastData)
+            df_bak.to_csv('grocery_data.csv', index=False,sep=',', header=True)
+
+        #Initialize Screen
+        def __init__(self, parent, controller):
+            tk.Frame.__init__(self, parent)
+            self.controller = controller
+            label = tk.Label(self, text="Shopping List", font=controller.title_font)
+            label.pack(side="top", fill="x", pady=10)
+
+            button1 = tk.Button(self, text="All Items",
+                                command=lambda: controller.show_frame("Page_2"))
+            button1.pack()
+
+            button2 = tk.Button(self, text="Favorites",
+                                command=lambda: controller.show_frame("Page_3"))
+            button2.pack()
+
+            button3 = tk.Button(self, text="Edit Favorites",
+                                command=lambda: controller.show_frame("Page_4"))
+            button3.pack()
+
+            button4 = tk.Button(self, text="Restore System Default",
+                                command=lambda: [self.csvRestore(),self.quit()])
+            button4.pack()
+
+    class Page_2(tk.Frame):
+
+        def __init__(self, parent, controller):
+            csvFile=pd.read_csv('grocery_data.csv')
+            mastData=pd.DataFrame(csvFile)
+            tk.Frame.__init__(self, parent)
+            self.controller = controller
+            label = tk.Label(self, text="All items are displayed here", font=controller.title_font)
+            label.pack(side="top", fill="x", pady=10)
+
+            text = tk.Text(self)
+            text.insert(tk.END, str(mastData.iloc[:22,1:3]))
+            text.pack() 
+
+            button = tk.Button(self, text="Main Menu",
+                            command=lambda: controller.show_frame("StartPage"))
+            button.pack()
+
+    class Page_3(tk.Frame):
+
+        def __init__(self, parent, controller):
+            csvFile=pd.read_csv('grocery_data.csv')
+            mastData=pd.DataFrame(csvFile)
+
+            mastData2=mastData.where(mastData.favorite == 1)
+            mastData2.dropna(how='any', inplace=True)
+            mastData2.reset_index(drop=True)
+
+            tk.Frame.__init__(self, parent)
+            self.controller = controller
+            label = tk.Label(self, text="Your favorites are displayed here", font=controller.title_font)
+            label.pack(side="top", fill="x", pady=10)
+
+            text = tk.Text(self)
+            text.insert(tk.END, str(mastData2.iloc[:22,1:3]))
+            text.pack() 
+
+            button = tk.Button(self, text="Main Menu",
+                            command=lambda: controller.show_frame("StartPage"))
+            button.pack()
+
+    class Page_4(tk.Frame):
+        
+        def copy_clip(self):
+            pya.hotkey('ctrl', 'c')
+            time.sleep(.01)
+            return pyperclip.paste()
+
+        def update(self):
+            
+            df = pd.DataFrame(data=pd.read_clipboard(header=1, sep="\s{2,}",index_col=0,engine="python",names=["row","name_store","product","favorite"]))
+            target = open('grocery_data.csv', mode="w+")
+            with target as file:
+                target.truncate()
+                target.close()
+            df_update = df
+            df_update.to_csv('grocery_data.csv', index=False,sep=',', header=True)
+            if pd.DataFrame(df_update).empty:
+                print('Data update error, restoring to previous backup. Please Restart Application')
+                target=open('grocery_data.csv', mode="w+")
+                backup=read_csv('grocery_data_backup.csv')
+                with target as file:
+                    file.truncate()
+                    file.close()
+                df_bak=pd.DataFrame(backup)
+                df_bak.to_csv('grocery_data.csv', index=False,sep=',', header=True)
+            else:
+                print('Update Success')
+
+        def __init__(self, parent, controller):
+            csvFile=pd.read_csv('grocery_data.csv')
+            mastData=pd.DataFrame(csvFile)
+            tk.Frame.__init__(self, parent)
+            self.controller = controller
+            label = tk.Label(self, text="Edit Your Favorites", font=controller.title_font)
+            label.pack(side="top", fill="x", pady=10)
+
+            text = tk.Text(self)
+            text.insert(tk.END, str(mastData.iloc[:22,1:4]))
+            text.pack() 
+
+            button1 = tk.Button(self, text="Main Menu",
+                            command=lambda: controller.show_frame("StartPage"))
+            button2=tk.Button(self,text="Save",padx=20,pady=10,command=self.update)
+            button3=tk.Button(self,text="Add",padx=20,pady=10,command=self.copy_clip)
+            button4=tk.Button(self,text="Exit",padx=20,pady=10,command=self.quit)
+            button1.pack()
+            button2.pack()
+            button3.pack()
+            button4.pack()
+
+    if __name__ == "__main__":
+        app = My_GUI()
+        app.mainloop()
+
+except:
+    print('Critical error, restoring from backup')
+    target=open('grocery_data.csv', mode="w+")
+    backup=read_csv('grocery_data_backup_original.csv')
+    with target as file:
+        file.truncate()
+        file.close()
+    df_bak=pd.DataFrame(backup)
+    df_bak.to_csv('grocery_data.csv', index=False,sep=',', header=True)
