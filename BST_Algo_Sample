@@ -1,0 +1,126 @@
+import time
+import numpy as np
+
+class lin_idx():
+    def __init__(self, data):
+        self.array = data
+        
+    def search(self, target):
+        for i in range(len(self.array)):
+            if(self.array[i] == target):
+                return i
+        return print('Not Found')
+
+class Node:
+    def __init__(self, key):
+        self.key = key
+        self.left = None
+        self.right = None
+
+    def insert(self, data):
+        #Check that the root is not empty, if so, insert the data
+        if self.key is None:
+            self.key = data
+            return
+        # this checks for dupes, if it finds a dupe it will ignore it
+        if self.key == data:
+            return
+        # Check that the current node is greater than the incoming data,
+        # if it is then the data will be inserted recursively on the left
+        # until it finds and empty node.
+        if self.key > data:
+            if self.left:
+                self.left.insert(data)
+            else:
+                self.left = Node(data)
+        # repeat the above recursion onthe right side
+        else:
+            if self.right:
+                self.right.insert(data)
+            else:
+                self.right = Node(data)  
+
+    def search(self, data):
+        if self.key == data:
+            print("Data Found")
+            return True
+        if self.key > data:
+            if self.left:
+                self.left.search(data)
+            else:
+                print("Data Not Found")
+                return False  
+        if self.key < data:
+            if self.right:
+                self.right.search(data)
+            else:
+                print("Data Not Found")
+                return False
+
+    def preorder(self):
+        print(self.key, end=" ")
+        if self.left:
+            self.left.preorder()
+        if self.right:
+            self.right.preorder()
+        return
+    
+    def inorder(self):
+        if self.left:
+            self.left.inorder()
+        print(self.key, end=" ")
+        if self.right:
+            self.right.inorder()
+        return
+
+    def postorder(self):
+        if self.left:
+            self.left.postorder()
+        if self.right:
+            self.right.postorder()
+        print(self.key, end=" ")
+        return
+
+class Tree:
+    def __init__(self, root, array):
+        self.root = root
+        self.array = array
+
+    def build_tree(self):
+        for i in array1:
+            tree.root.insert(i)
+        return print("Level-1 Node: ",tree.root.key)  
+
+if __name__ == '__main__':
+    
+    #-- INPUT DATA================================================================================
+    data_rd = np.random.randint(0, 1000000, 1000000)
+    data_final = data_rd
+    array1 = data_final
+    search_num = input("Enter Search Number: ")
+
+    #-- LINEAR SEARCH=============================================================================
+    start_time = time.time()
+    index = lin_idx(data_final)  
+    res = index.search(int(search_num))
+    print("Linear Search - Found at index: ",res)
+    print("Process finished --- %s seconds ---" % (time.time() - start_time))
+         
+    #-- BINARY SEARCH TREE=========================================================================
+    print("\nBinary Search Tree")
+    root = Node(None)
+    tree = Tree(root, array1)
+    tree.build_tree()
+ 
+    #traversal
+    #print("\nPreorder")
+    # tree.root.preorder()
+    # print("\nInorder")
+    # tree.root.inorder()
+    # print("\nPostorder")
+    # tree.root.postorder()
+
+    start_time2 = time.time()
+    #search
+    tree.root.search(int(search_num))
+    print("Process finished --- %s seconds ---" % (time.time() - start_time2))
