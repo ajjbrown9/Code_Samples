@@ -1,0 +1,41 @@
+banks <- read.csv("MIS510banks.csv", header = TRUE)
+banks.df <- as.data.frame(banks)
+View(banks.df) # Grid view of data
+summary(banks.df) # column summary stats
+str(banks.df) # view data types
+cor(banks.df) # correlation between variables
+lapply(seq(banks.df), function(x) #generate plots to observe data points (distribution observations)
+  plot(x=banks.df[[x]]
+       ,xlab=names(banks.df)[x]
+       ,main=paste("Histogram", names(banks.df)[x])))
+lapply(seq(banks.df), function(x) #generate histograms to observe data points (distribution observations)
+  hist(x=banks.df[[x]]
+       ,xlab=names(banks.df)[x]
+       ,main=paste("Histogram", names(banks.df)[x])))
+Sys.Date()
+```
+
+```{r Modeling}
+library("arm")
+banks.df <- banks.df[,-c(1)]
+banks.df
+#banks.df$Financial.Condition <- factor(banks.df$Financial.Condition, levels=c(0,1),labels=c("Weak","Strong")) # Commented out as replacing the dummies in this manner breaks error calculations later (confusion matrix)
+banks.df$Financial.Condition
+#log_mod <- glm(banks.df$Financial.Condition ~ ., data = banks.df, family = "binomial")
+log_mod <- bayesglm(banks.df$Financial.Condition ~ .
+                    ,data = banks.df
+                    ,family = "binomial") # Bayesian model substitute to handle perfect separation.
+options(scipen = 999)
+summary(log_mod)
+```
+
+```{r Evaluation}
+library("caret")
+library("gains")
+p <- predict(log_mod, banks.df) # prediction set from model
+g <- gains(banks.df$Financial.Condition, p) # gain set from model for comparison
+plot(c(0,g$cume.pct.of.total*sum(banks.df$Financial.Condition))~c(0,g$cume.obs)
+     ,xlab = "Cases"
+     ,ylab = "Cumulative")
+lines(c(0,sum(banks.df$Financial.Condition))~c(0,dim(banks.df)[0], lty=2))
+confusionMatrix(as.factor(ifelse(p > .5, 1, 0)), as.factor(banks.df$Financial.Condition)) # data casted as factor to allow calculation
