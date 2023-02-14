@@ -1,0 +1,109 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r gc_summary}
+#Fetch data and set file/data frame variables to begin analysis
+gc_mast.df <- read.csv("GermanCredit.csv", header = TRUE)
+gc_df      <- as.data.frame(gc_mast.df)
+
+#Exploratory functions for viewing dimensions and characteristis of the data.
+dim(gc_df) # returns the physical dimension of the data set (i.e. rows and columns) - confirms 1000 rows (records) and 32 columns (variables).
+
+View(gc_df) # outputs a grid view of the data in a separate output for review - we are able to make decisions such as omitting column 1 (obs id) from a potential indenpendent variable. We also can see what the data itself looks like (i.e. column names, binary results, text, floats, ints, etc).
+
+str(gc_df) # displays variable attributes - this confirms much of the structure gleamed from View(). We notice that all variables are classified as int and can see binary output vs classes vs quants.
+
+# Note that with the functions above we are able to see how this data set is primarily comprised of categorical as opposed to continous variables.
+
+summary(gc_df) # displays statistical summary of each variable.
+
+cor(gc_df) # displays correlations between variables
+```
+
+```{r gc_part}
+library(dplyr) #library used for data set manipulation - will use for partitioning.
+#Base Partition to use in future models.
+gc_train   <- gc_df %>% dplyr::sample_frac(.8)
+gc_test    <- dplyr::anti_join(gc_df, gc_train, by = 'OBS.')
+```
+
+```{r nn_model_train}
+#install.packages("neuralnet")
+library(neuralnet)
+library(caret)
+model1 <- neuralnet(RESPONSE ~ .-OBS., # Response per all other variables minus OBS. ID column
+                     data = gc_train, # training partition selected.
+                     hidden = c(2,32), # 2 hidden layers, 32 nodes
+                     err.fct = "sse", #sum of squares error method
+                     threshold = 0.01, # Acceptable error (set by us) for the threshhold of recalculation
+                     rep = 10, # 10 iterations
+                     learningrate = 0.001, #rate of learning - lower is smaller adjustments
+                     startweights = NULL, #sets randomized starting weights
+                     algorithm = 'backprop', #backpropogation for tuning
+                     linear.output = FALSE #Smoothing desired
+                     )
+#head(model1$result.matrix,50)
+#prediction(model1)
+training.prediction=neuralnet::compute(model1, gc_train[,-1])
+#training.prediction # CRITICAL FAILURE - for some reason these are all being assigned the same prediction
+training.class=apply(training.prediction$net.result,1,which.max)
+#training.class
+confusionMatrix(as.factor(training.class), as.factor(gc_train$RESPONSE))
+```
+
+```{r nn_model_test}
+#install.packages("neuralnet")
+library(neuralnet)
+library(caret)
+#head(model1$result.matrix,50)
+test.prediction=neuralnet::compute(model1, gc_test[,-1])
+#test.prediction # CRITICAL FAILURE - for some reason these are all being assigned the same prediction
+test.class=apply(test.prediction$net.result,1,which.max)
+#test.class
+confusionMatrix(as.factor(test.class), as.factor(gc_test$RESPONSE)) # compares test class estimate against observed responses
+plot(model1, rep = "best")
+```
+
+```{r log_reg_train}
+library("arm")
+library("caret")
+library("gains")
+dataset <- gc_train #assign dataset to shared variable to avoid warnings
+log_model <- bayesglm(dataset$RESPONSE ~ .-OBS.
+                    ,data = dataset
+                    ,family = "binomial")
+summary(log_model) # First model iteration
+
+log_model <- bayesglm(dataset$RESPONSE ~ dataset$CHK_ACCT + dataset$DURATION + dataset$HISTORY + dataset$NEW_CAR + dataset$AMOUNT + dataset$SAV_ACCT + dataset$INSTALL_RATE + dataset$MALE_SINGLE + dataset$PROP_UNKN_NONE + dataset$OTHER_INSTALL + dataset$FOREIGN
+                    ,data = dataset
+                    ,family = "binomial")
+summary(log_model) # Removal of non-significant variables
+
+log_model <- bayesglm(dataset$RESPONSE ~ dataset$CHK_ACCT + dataset$DURATION + dataset$HISTORY + dataset$NEW_CAR + dataset$AMOUNT + dataset$SAV_ACCT + dataset$INSTALL_RATE + dataset$MALE_SINGLE + dataset$OTHER_INSTALL + dataset$FOREIGN
+                    ,data = dataset
+                    ,family = "binomial")
+summary(log_model) # Second removal of non-significant variables
+# log(p) = 1 / 1 + e^-(.8498+.5247(CHK_ACCT)-.0277(DURATION)+.3927(HISTORY)-.9083(NEW_CAR)-.0001(AMOUNT)+.2718(SAV_ACCT)-.3125(INSTALL_RATE)+.6039(MALE_SINGLE)-.4970(OTHER_INSTALL)+1.828(FOREIGN)+/-Err)
+
+log_train.prediction <- predict(log_model, dataset, type="response") # prediction set from model. type=Response sets probability bounds.
+#log_train.prediction
+log_train.gains <- gains(dataset$RESPONSE, log_train.prediction) # gain set from model for comparison
+#log_train.gains
+confusionMatrix(as.factor(ifelse(log_train.prediction > .5, 1, 0)), as.factor(dataset$RESPONSE))
+```
+
+```{r log_reg_test}
+dataset <- gc_test
+log_test.prediction <- predict(log_model, dataset, type="response")
+#log_test.prediction
+log_test.gains <- gains(dataset$RESPONSE, log_test.prediction) # gain set from model for comparison
+#log_test.gains
+confusionMatrix(as.factor(ifelse(log_test.prediction > .5, 1, 0)), as.factor(dataset$RESPONSE))
+plot(c(0,log_test.gains$cume.pct.of.total*sum(dataset$RESPONSE))~c(0,log_test.gains$cume.obs) # generate gains plots
+     ,xlab = "Cases"
+     ,ylab = "Cumulative"
+     ,xlim = c(0,300)
+     ,ylim = c(0,200)
+     )
+lines(c(0,sum(dataset$RESPONSE))~c(0,dim(dataset)[0], lty=2))
