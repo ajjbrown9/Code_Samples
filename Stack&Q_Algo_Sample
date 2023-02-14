@@ -1,0 +1,40 @@
+#Array based stack & queue
+class Queue:
+    def __init__(self):
+        self.s1 = []
+        self.s2 = []
+ 
+    #Functionaly the same as enQueue - places the x argument into stack 1
+    def push(self, x):
+        self.s1.append(x)
+ 
+    #Functionaly the same as deQueue. Logic here determined scenarios, but you are attempting to 
+    def pop(self):
+ 
+        # if both the stacks are empty
+        if len(self.s1) == 0 and len(self.s2) == 0:
+            print("No Queue")
+            return
+ 
+        # if s2 is empty and s1 has elements then we will move s1 values to s2 repeatedly until s1 is empty.
+        # this effectively reverses the first in last out of a singular stack to make it a queue system.
+        elif len(self.s2) == 0 and len(self.s1) > 0:
+            while len(self.s1):
+                s1Pop = self.s1.pop()
+                self.s2.append(s1Pop)
+            return self.s2.pop()
+ 
+        else:
+            return self.s2.pop()
+ 
+if __name__ == '__main__':
+    q = Queue()
+    #Think of these values as representing an ID or individual instance of something in a queue.
+    q.push('First Place')
+    q.push('Second Place')
+    q.push('Third Place')
+    
+    print(q.pop()) #retrieves first place
+    print(q.pop()) #retrieves second place
+    print(q.pop()) #retrieves third place
+    print(q.pop()) #retrieves none as there are no values in the stacks
