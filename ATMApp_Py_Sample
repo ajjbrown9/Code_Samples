@@ -1,0 +1,606 @@
+import sys
+import subprocess
+subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'numpy'])
+subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pandas'])
+import time
+import numpy as np
+import pandas as pd
+import sqlite3 as sl
+from sqlite3 import Error
+import csv
+import tkinter as tk
+from tkinter import *
+from tkinter import ttk
+from tkinter import font as tkfont
+from functools import partial
+
+#BEGIN DATABASE CONSTRUCTION
+#==========================================
+#DROP/CREATE DATABASE =============================================================================================================
+def restoreDB():
+    con = sl.connect('test.db')
+    if con is not None:
+        c = con.cursor()
+        with con:
+            #USERS
+            c.execute("""
+                DROP TABLE IF EXISTS users
+                ;
+            """)
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    user_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    name TEXT,
+                    username TEXT,
+                    pin INTEGER(4),
+                    failed_login INTEGER(1),
+                    is_locked BOOLEAN
+                );
+            """)
+            #WORK ORDERS
+            c.execute("""
+                DROP TABLE IF EXISTS accounts
+                ;
+            """)
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS accounts (
+                    account_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    account_number INTEGER(8),
+                    user_id INTEGER,
+                    checking,
+                    saving,
+                    is_empty,
+                    is_locked
+                );
+            """)
+            #session_login
+            c.execute("""
+                DROP TABLE IF EXISTS session
+                ;
+            """)
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS session (
+                    user_id INTEGER NOT NULL PRIMARY KEY,
+                    checking NUMERIC,
+                    saving NUMERIC,
+                    username TEXT,
+                    pin INTEGER(4)
+                );
+
+            """)
+        c.close()
+restoreDB()
+
+
+#INSERT USERS=============================================================================================================
+holder_DB_FILE_PATH = 'test.db'
+holder_CSV_FILE_PATH = 'users.csv'
+holder_TABLE_NAME = 'users'
+def insert_values_to_table(table_name, csv_file_path):
+    holder_DB_FILE_PATH = 'test.db'
+    holder_CSV_FILE_PATH = 'users.csv'
+    holder_TABLE_NAME = 'users'
+    DB_FILE_PATH = holder_DB_FILE_PATH
+    CSV_FILE_PATH = holder_CSV_FILE_PATH 
+
+    """
+    Open a csv file with pandas, store its content in a pandas data frame, change the data frame headers to the table
+    column names and insert the data to the table
+    :param table_name: table name in the database to insert the data into
+    :param csv_file: path of the csv file to process
+    :return: None
+    """
+    con = sl.connect(holder_DB_FILE_PATH)
+    if con is not None:
+        c = con.cursor()
+
+        df = pd.read_csv(holder_CSV_FILE_PATH)
+        df.columns = get_column_names_from_db_table(c, holder_TABLE_NAME)
+        df.to_sql(name=table_name, con=con, if_exists='append', index=False)
+
+        con.close()
+        print('===User Columns returned===')
+        print('User SQL insert process finished')
+    else:
+        print('Connection to database failed')
+
+def get_column_names_from_db_table(sql_cursor, table_name):
+    """
+    Scrape the column names from a database table to a list
+    :param sql_cursor: sqlite cursor
+    :param table_name: table name to get the column names from
+    :return: a list with table column names
+    """
+    con = sl.connect(holder_DB_FILE_PATH)
+    if con is not None:
+        c = con.cursor()
+
+        table_column_names = 'PRAGMA table_info(' + table_name + ');'
+        c.execute(table_column_names)
+        table_column_names = c.fetchall()
+
+        column_names = list()
+
+        for name in table_column_names:
+            column_names.append(name[1])
+
+        return column_names
+    else:
+        print('Connection to database failed')
+
+# if __name__ == '__main__':
+#     insert_values_to_table('imdb_temp', holder_CSV_FILE_PATH)
+
+insert_values_to_table(holder_TABLE_NAME,holder_CSV_FILE_PATH)
+get_column_names_from_db_table('sqlite cursor',holder_TABLE_NAME)
+
+#INSERT ACCOUNTS=============================================================================================================
+holder_DB_FILE_PATH = 'test.db'
+holder_CSV_FILE_PATH = 'accounts.csv'
+holder_TABLE_NAME = 'accounts'
+def insert_values_to_table(table_name, csv_file_path):
+    holder_DB_FILE_PATH = 'test.db'
+    holder_CSV_FILE_PATH = 'accounts.csv'
+    holder_TABLE_NAME = 'accounts'
+    DB_FILE_PATH = holder_DB_FILE_PATH
+    CSV_FILE_PATH = holder_CSV_FILE_PATH 
+
+    """
+    Open a csv file with pandas, store its content in a pandas data frame, change the data frame headers to the table
+    column names and insert the data to the table
+    :param table_name: table name in the database to insert the data into
+    :param csv_file: path of the csv file to process
+    :return: None
+    """
+    con = sl.connect(holder_DB_FILE_PATH)
+    if con is not None:
+        c = con.cursor()
+
+        df = pd.read_csv(holder_CSV_FILE_PATH)
+        df.columns = get_column_names_from_db_table(c, holder_TABLE_NAME)
+        df.to_sql(name=table_name, con=con, if_exists='append', index=False)
+
+        con.close()
+        print('===Equipment Columns returned===')
+        print('Account SQL insert process finished')
+    else:
+        print('Connection to database failed')
+
+def get_column_names_from_db_table(sql_cursor, table_name):
+    """
+    Scrape the column names from a database table to a list
+    :param sql_cursor: sqlite cursor
+    :param table_name: table name to get the column names from
+    :return: a list with table column names
+    """
+    con = sl.connect(holder_DB_FILE_PATH)
+    if con is not None:
+        c = con.cursor()
+
+        table_column_names = 'PRAGMA table_info(' + table_name + ');'
+        c.execute(table_column_names)
+        table_column_names = c.fetchall()
+
+        column_names = list()
+
+        for name in table_column_names:
+            column_names.append(name[1])
+
+        return column_names
+    else:
+        print('Connection to database failed')
+
+# if __name__ == '__main__':
+#     insert_values_to_table('imdb_temp', holder_CSV_FILE_PATH)
+
+insert_values_to_table(holder_TABLE_NAME,holder_CSV_FILE_PATH)
+get_column_names_from_db_table('sqlite cursor',holder_TABLE_NAME)
+
+try:
+    class My_GUI(Tk):
+
+        def __init__(self, *args, **kwargs):
+            Tk.__init__(self, *args, **kwargs)
+
+            self.title_font = tkfont.Font(family='Helvetica', size=18, weight="bold", slant="italic")
+
+            container = tk.Frame(self)
+            container.pack(side="top", fill="both", expand=True)
+            container.grid_rowconfigure(0, weight=1)
+            container.grid_columnconfigure(0, weight=1)
+
+            self.frames = {}
+            for F in (StartPage, Page_2, Page_3, Page_4):
+                page_name = F.__name__
+                frame = F(parent=container, controller=self)
+                self.frames[page_name] = frame
+                frame.grid(row=0, column=0, sticky="nsew")
+
+            self.show_frame("StartPage")
+
+        def show_frame(self, page_name):
+            '''Show a frame for the given page name'''
+            frame = self.frames[page_name]
+            frame.tkraise() 
+except:
+    print("GUI Initialization Error")
+try:
+    class StartPage(Frame):
+        #Initialize Screen
+        attempt=0
+
+        def __init__(self, parent, controller):
+            authenticated=0
+            Frame.__init__(self, parent)
+            self.controller = controller
+            label = Label(self, text="Login", font=controller.title_font)
+            label.pack(side="top", fill="x", pady=10)
+
+            #Labels
+            username_label = Label(self, text="Username")
+            username_label.pack(side="top", fill="x", pady=0)
+            password_label = Label(self, text="Password")
+            password_label.pack(side="top", fill="x", pady=0)
+
+            #Fields
+            username_entry = Entry(self)
+            username_entry.pack(pady=1)
+            password_entry = Entry(self)
+            password_entry.pack(pady=1)
+
+            self.username_entry = username_entry
+            self.password_entry = password_entry
+
+            self.username = self.username_entry
+            self.password = self.password_entry
+            
+
+            button1 = Button(self, text="Login",
+                                command=lambda: StartPage.login(self))
+            button1.pack()
+
+            button2 = Button(self, text="Quit",
+                                command=lambda: quit())
+            button2.pack()
+
+        def login(self):
+            #connect to db
+            con = sl.connect('test.db')
+            c = con.cursor()
+
+            #check input against database
+            print("logging in...")
+            check_login = f"SELECT username||pin FROM users WHERE username = '{self.username_entry.get()}' AND pin = '{self.password_entry.get()}' AND is_locked = 0"
+            c.execute(check_login)
+            username_result = c.fetchall()
+            self.username_result = username_result
+            
+            if len(username_result) != 0:
+                authenticated=1
+                print("Authenticated")
+                c3 = con.cursor()
+                init_session = f"INSERT INTO session SELECT users.user_id, accounts.checking, accounts.saving, users.username, users.pin FROM users INNER JOIN accounts ON users.user_id = accounts.user_id WHERE users.username = '{self.username_entry.get()}' AND users.pin = '{self.password_entry.get()}'"
+                c3.execute(init_session)
+                con.commit()
+            else:
+                authenticated=0
+                print("Authentication Failed")
+                if StartPage.attempt > 3:
+                    print('Account Locked Due to Failed Login Attempts, Please Reach Out to Support.')
+                    #write code to lock account
+                    c2 = con.cursor()
+                    attempt_lockout = f"UPDATE users SET is_locked = 1 WHERE username = '{self.username_entry.get()}' AND is_locked = 0"
+                    c2.execute(attempt_lockout)
+                    con.commit()
+                else:
+                    StartPage.attempt = StartPage.attempt + 1
+            if authenticated == 1:
+                return self.controller.show_frame("Page_2")
+            else:
+                print("Post Login Failed")
+except:
+    print("Login Page Error")
+
+#Main===========================================================================================================
+try:
+    class Page_2(Frame):
+
+        def __init__(self, parent, controller):
+            Frame.__init__(self, parent)
+            self.controller = controller
+            label = Label(self, text="Options", font=controller.title_font)
+            label.pack(side="top", fill="x", pady=10)
+
+            button1 = Button(self, text="Checking",
+                                command=lambda: controller.show_frame("Page_4"))
+            button1.pack()
+
+            button2 = Button(self, text="Savings",
+                                command=lambda: controller.show_frame("Page_3"))
+            button2.pack()
+
+            button3 = Button(self, text="Quit",
+                                command=lambda: quit())
+            button3.pack()
+except:
+    print("Main Menu Error")
+
+try:
+    class Page_3(Frame):
+
+        def __init__(self, parent, controller):
+            Frame.__init__(self, parent)
+            self.controller = controller
+            label = Label(self, text="Saving Withdraw Options", font=controller.title_font)
+            label.pack(side="top", fill="x", pady=10)
+
+            amount_label = Label(self, text="Amount to Withdraw")
+            amount_label.pack(side="top", fill="x", pady=1)
+            amount_entry = Entry(self)
+            amount_entry.pack(side="top", fill="x", pady=1)
+
+            button0_1 = Button(self, text="Withdraw All Funds",
+                            command=lambda: allSaving())
+            button0_1.pack(side="top")
+
+            button0_2 = Button(self, text="$50",
+                            command=lambda: fiftySaving())
+            button0_2.pack(side="top")
+
+            button0_3 = Button(self, text="$100",
+                            command=lambda: hundredSaving())
+            button0_3.pack(side="top")
+
+            button0_4 = Button(self, text="$500",
+                            command=lambda: fivehundredSaving())
+            button0_4.pack(side="top")
+
+            button1 = Button(self, text="Main Menu",
+                            command=lambda: controller.show_frame("Page_2"))
+            button1.pack(side="bottom",pady=10)
+
+            button2 = Button(self, text="Submit Custom Amount",
+                            command=lambda: submitSaving())
+            button2.pack(side="bottom",pady=10)
+
+            def submitSaving():
+                con = sl.connect('test.db')
+                c0 = con.cursor()
+                money_check = f"SELECT saving FROM session;"
+                c0.execute(money_check)
+                saving_check = c0.fetchall()
+
+                if (len(saving_check) > 0 and sum(list(saving_check)[0]) > 0):
+                    c1 = con.cursor()
+                    if int(amount_entry.get()) > 0:
+                        insert = f"UPDATE session SET saving = saving - {amount_entry.get()} WHERE user_id = (SELECT user_id FROM session);"
+                        c1.execute(insert)
+                        print("Withdraw Complete")
+                        con.commit()
+                        print('Balance: ', saving_check)
+                    else:
+                        print("Please Provide All Values")
+                else:
+                    print('Insufficient Funds')
+                con.close()
+
+            def allSaving():
+                con = sl.connect('test.db')
+                c0 = con.cursor()
+                money_check = f"SELECT saving FROM session;"
+                c0.execute(money_check)
+                saving_check = c0.fetchall()
+
+                if (len(saving_check) > 0 and sum(list(saving_check)[0]) > 0):
+                    c1 = con.cursor()
+                    insert = f"UPDATE session SET saving = saving - saving WHERE user_id = (SELECT user_id FROM session);"
+                    c1.execute(insert)
+                    print("Withdraw Complete")
+                    con.commit()
+                    print('Balance: ', saving_check)
+                else:
+                    print('Insufficient Funds')
+
+                con.close()
+
+            def fiftySaving():
+                con = sl.connect('test.db')
+                c0 = con.cursor()
+                money_check = f"SELECT saving FROM session;"
+                c0.execute(money_check)
+                saving_check = c0.fetchall()
+
+                if (len(saving_check) > 0 and sum(list(saving_check)[0]) > 0):
+                    c1 = con.cursor()
+                    insert = f"UPDATE session SET saving = saving - 50 WHERE user_id = (SELECT user_id FROM session);"
+                    c1.execute(insert)
+                    print("Withdraw Complete")
+                    con.commit()
+                    print('Balance: ', saving_check)
+                else:
+                    print('Insufficient Funds')
+
+                con.close()
+
+            def hundredSaving():
+                con = sl.connect('test.db')
+                c0 = con.cursor()
+                money_check = f"SELECT saving FROM session;"
+                c0.execute(money_check)
+                saving_check = c0.fetchall()
+
+                if (len(saving_check) > 0 and sum(list(saving_check)[0]) > 0):
+                    c1 = con.cursor()
+                    insert = f"UPDATE session SET saving = saving - 100 WHERE user_id = (SELECT user_id FROM session);"
+                    c1.execute(insert)
+                    print("Withdraw Complete")
+                    con.commit()
+                    print('Balance: ', saving_check)
+                else:
+                    print('Insufficient Funds')
+
+                con.close()
+
+            def fivehundredSaving():
+                con = sl.connect('test.db')
+                c0 = con.cursor()
+                money_check = f"SELECT saving FROM session;"
+                c0.execute(money_check)
+                saving_check = c0.fetchall()
+
+                if (len(saving_check) > 0 and sum(list(saving_check)[0]) > 0):
+                    c1 = con.cursor()
+                    insert = f"UPDATE session SET saving = saving - 500 WHERE user_id = (SELECT user_id FROM session);"
+                    c1.execute(insert)
+                    print("Withdraw Complete")
+                    con.commit()
+                    print('Balance: ', saving_check)
+                else:
+                    print('Insufficient Funds')
+
+                con.close()
+except:
+    print("Cases page error")
+
+try:
+    class Page_4(Frame):
+    
+        def __init__(self, parent, controller):
+            Frame.__init__(self, parent)
+            self.controller = controller
+            label = Label(self, text="Checking Withdraw Options", font=controller.title_font)
+            label.pack(side="top", fill="x", pady=10)
+
+            amount_label = Label(self, text="Amount to Withdraw")
+            amount_label.pack(side="top", fill="x", pady=1)
+            amount_entry = Entry(self)
+            amount_entry.pack(side="top", fill="x", pady=1)
+
+            button0_1 = Button(self, text="Withdraw All Funds",
+                            command=lambda: allChecking())
+            button0_1.pack(side="top")
+
+            button0_2 = Button(self, text="$50",
+                            command=lambda: fiftyChecking())
+            button0_2.pack(side="top")
+
+            button0_3 = Button(self, text="$100",
+                            command=lambda: hundredChecking())
+            button0_3.pack(side="top")
+
+            button0_4 = Button(self, text="$500",
+                            command=lambda: fivehundredChecking())
+            button0_4.pack(side="top")
+
+            button1 = Button(self, text="Main Menu",
+                            command=lambda: controller.show_frame("Page_2"))
+            button1.pack(side="bottom",pady=10)
+
+            button2 = Button(self, text="Submit Custom Amount",
+                            command=lambda: submitChecking())
+            button2.pack(side="bottom",pady=10)
+
+            def submitChecking():
+                con = sl.connect('test.db')
+                c0 = con.cursor()
+                money_check = f"SELECT checking FROM session;"
+                c0.execute(money_check)
+                checking_check = c0.fetchall()
+
+                if (len(checking_check) > 0 and sum(list(checking_check)[0]) > 0):
+                    c1 = con.cursor()
+                    if int(amount_entry.get()) > 0:
+                        insert = f"UPDATE session SET checking = checking - {amount_entry.get()} WHERE user_id = (SELECT user_id FROM session);"
+                        c1.execute(insert)
+                        print("Withdraw Complete")
+                        con.commit()
+                        print('Balance: ', checking_check)
+                    else:
+                        print("Please Provide All Values")
+                else:
+                    print('Insufficient Funds')
+
+                con.close()
+
+            def allChecking():
+                con = sl.connect('test.db')
+                c0 = con.cursor()
+                money_check = f"SELECT checking FROM session;"
+                c0.execute(money_check)
+                checking_check = c0.fetchall()
+
+                if (len(checking_check) > 0 and sum(list(checking_check)[0]) > 0):
+                    c1 = con.cursor()
+                    insert = f"UPDATE session SET checking = checking - checking WHERE user_id = (SELECT user_id FROM session);"
+                    c1.execute(insert)
+                    print("Withdraw Complete")
+                    con.commit()
+                    print('Balance: ', checking_check)
+                else:
+                    print('Insufficient Funds')
+
+                con.close()
+
+            def fiftyChecking():
+                con = sl.connect('test.db')
+                c0 = con.cursor()
+                money_check = f"SELECT checking FROM session;"
+                c0.execute(money_check)
+                checking_check = c0.fetchall()
+
+                if (len(checking_check) > 0 and sum(list(checking_check)[0]) > 0):
+                    c1 = con.cursor()
+                    insert = f"UPDATE session SET checking = checking - 50 WHERE user_id = (SELECT user_id FROM session);"
+                    c1.execute(insert)
+                    print("Withdraw Complete")
+                    con.commit()
+                    print('Balance: ', checking_check)
+                else:
+                    print('Insufficient Funds')
+
+                con.close()
+
+            def hundredChecking():
+                con = sl.connect('test.db')
+                c0 = con.cursor()
+                money_check = f"SELECT checking FROM session;"
+                c0.execute(money_check)
+                checking_check = c0.fetchall()
+
+                if (len(checking_check) > 0 and sum(list(checking_check)[0]) > 0):
+                    c1 = con.cursor()
+                    insert = f"UPDATE session SET checking = checking - 100 WHERE user_id = (SELECT user_id FROM session);"
+                    c1.execute(insert)
+                    print("Withdraw Complete")
+                    con.commit()
+                    print('Balance: ', checking_check)
+                else:
+                    print('Insufficient Funds')
+
+                con.close()
+
+            def fivehundredChecking():
+                con = sl.connect('test.db')
+                c0 = con.cursor()
+                money_check = f"SELECT checking FROM session;"
+                c0.execute(money_check)
+                checking_check = c0.fetchall()
+
+                if (len(checking_check) > 0 and sum(list(checking_check)[0]) > 0):
+                    c1 = con.cursor()
+                    insert = f"UPDATE session SET checking = checking - 500 WHERE user_id = (SELECT user_id FROM session);"
+                    c1.execute(insert)
+                    print("Withdraw Complete")
+                    con.commit()
+                    print('Balance: ', checking_check)
+                else:
+                    print('Insufficient Funds')
+
+                con.close()
+except:
+    print("Submission Page Error")
+
+if __name__ == "__main__":
+    app = My_GUI()
+    app.mainloop()
+
