@@ -1,0 +1,916 @@
+from email import header
+import sys
+import subprocess
+subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'numpy'])
+subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pandas'])
+import time
+import numpy as np
+import pandas as pd
+import sqlite3 as sl
+from sqlite3 import Error
+import csv
+import tkinter as tk
+from tkinter import *
+from tkinter import ttk
+from tkinter import font as tkfont
+from functools import partial
+
+#BEGIN DATABASE CONSTRUCTION
+#==========================================
+#==========================================
+#==========================================
+#==========================================
+#==========================================
+#==========================================
+#DROP/CREATE DATABASE =============================================================================================================
+def restoreDB():
+    con = sl.connect('test.db')
+    if con is not None:
+        c = con.cursor()
+        with con:
+            #USERS
+            c.execute("""
+                DROP TABLE IF EXISTS USERS
+                ;
+            """)
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS USERS (
+                    user_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    name TEXT,
+                    username TEXT,
+                    password TEXT
+                );
+            """)
+            #WORK ORDERS
+            c.execute("""
+                DROP TABLE IF EXISTS WORK_ORDERS
+                ;
+            """)
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS WORK_ORDERS (
+                    wo_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    report_id INTEGER,
+                    crew_id INTEGER,
+                    equipment_id INTEGER,
+                    estimated_hours NUMERIC(8),
+                    status TEXT,
+                    material_quantity NUMERIC(16),
+                    cost_of_repair NUMERIC(16),
+                    crew_assigned BOOLEAN
+                );
+            """)
+            #CREW
+            c.execute("""
+                DROP TABLE IF EXISTS CREWS
+                ;
+            """)
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS CREWS (
+                    crew_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    crew_name TEXT,
+                    crew_size INTEGER,
+                    equipment_assigned INTEGER,
+                    hourly_rate NUMERIC(8)
+                );
+            """)
+            #EQUIPMENT
+            c.execute("""
+                DROP TABLE IF EXISTS EQUIPMENT
+                ;
+            """)
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS EQUIPMENT (
+                    equipment_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    equipment_name TEXT,
+                    hourly_cost NUMERIC(8)
+                );
+            """)
+            #USER REPORTS
+            c.execute("""
+                DROP TABLE IF EXISTS USERREPORT
+                ;
+            """)
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS USERREPORT (
+                    report_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER,
+                    street_address TEXT(32),
+                    location TEXT(8),
+                    size INTEGER,
+                    district TEXT(16)
+                );
+            """)
+            #DAMAGE
+            c.execute("""
+                DROP TABLE IF EXISTS DAMAGE
+                ;
+            """)
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS DAMAGE (
+                    user_id INTEGER NOT NULL PRIMARY KEY,
+                    report_id INTEGER,
+                    damage integer,
+                    address TEXT,
+                    damage_type TEXT,
+                    phone TEXT
+                );
+            """)
+            #SESSION
+            c.execute("""
+                DROP TABLE IF EXISTS SESSION
+                ;
+            """)
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS SESSION (
+                    user_id INTEGER NOT NULL PRIMARY KEY,
+                    name TEXT,
+                    username TEXT,
+                    password TEXT
+                );
+            """)
+        c.close()
+restoreDB()
+
+
+#INSERT USERS=============================================================================================================
+holder_DB_FILE_PATH = 'test.db'
+holder_CSV_FILE_PATH = 'users.csv'
+holder_TABLE_NAME = 'USERS'
+def insert_values_to_table(table_name, csv_file_path):
+    holder_DB_FILE_PATH = 'test.db'
+    holder_CSV_FILE_PATH = 'users.csv'
+    holder_TABLE_NAME = 'USERS'
+    DB_FILE_PATH = holder_DB_FILE_PATH
+    CSV_FILE_PATH = holder_CSV_FILE_PATH 
+
+    """
+    Open a csv file with pandas, store its content in a pandas data frame, change the data frame headers to the table
+    column names and insert the data to the table
+    :param table_name: table name in the database to insert the data into
+    :param csv_file: path of the csv file to process
+    :return: None
+    """
+    con = sl.connect(holder_DB_FILE_PATH)
+    if con is not None:
+        c = con.cursor()
+
+        df = pd.read_csv(holder_CSV_FILE_PATH)
+        df.columns = get_column_names_from_db_table(c, holder_TABLE_NAME)
+        df.to_sql(name=table_name, con=con, if_exists='append', index=False)
+
+        con.close()
+        print('===User Columns returned===')
+        print('User SQL insert process finished')
+    else:
+        print('Connection to database failed')
+
+def get_column_names_from_db_table(sql_cursor, table_name):
+    """
+    Scrape the column names from a database table to a list
+    :param sql_cursor: sqlite cursor
+    :param table_name: table name to get the column names from
+    :return: a list with table column names
+    """
+    con = sl.connect(holder_DB_FILE_PATH)
+    if con is not None:
+        c = con.cursor()
+
+        table_column_names = 'PRAGMA table_info(' + table_name + ');'
+        c.execute(table_column_names)
+        table_column_names = c.fetchall()
+
+        column_names = list()
+
+        for name in table_column_names:
+            column_names.append(name[1])
+
+        return column_names
+    else:
+        print('Connection to database failed')
+
+# if __name__ == '__main__':
+#     insert_values_to_table('imdb_temp', holder_CSV_FILE_PATH)
+
+insert_values_to_table(holder_TABLE_NAME,holder_CSV_FILE_PATH)
+get_column_names_from_db_table('sqlite cursor',holder_TABLE_NAME)
+
+#INSERT EQUIPMENT=============================================================================================================
+holder_DB_FILE_PATH = 'test.db'
+holder_CSV_FILE_PATH = 'equipment.csv'
+holder_TABLE_NAME = 'EQUIPMENT'
+def insert_values_to_table(table_name, csv_file_path):
+    holder_DB_FILE_PATH = 'test.db'
+    holder_CSV_FILE_PATH = 'equipment.csv'
+    holder_TABLE_NAME = 'EQUIPMENT'
+    DB_FILE_PATH = holder_DB_FILE_PATH
+    CSV_FILE_PATH = holder_CSV_FILE_PATH 
+
+    """
+    Open a csv file with pandas, store its content in a pandas data frame, change the data frame headers to the table
+    column names and insert the data to the table
+    :param table_name: table name in the database to insert the data into
+    :param csv_file: path of the csv file to process
+    :return: None
+    """
+    con = sl.connect(holder_DB_FILE_PATH)
+    if con is not None:
+        c = con.cursor()
+
+        df = pd.read_csv(holder_CSV_FILE_PATH)
+        df.columns = get_column_names_from_db_table(c, holder_TABLE_NAME)
+        df.to_sql(name=table_name, con=con, if_exists='append', index=False)
+
+        con.close()
+        print('===Equipment Columns returned===')
+        print('Equipment SQL insert process finished')
+    else:
+        print('Connection to database failed')
+
+def get_column_names_from_db_table(sql_cursor, table_name):
+    """
+    Scrape the column names from a database table to a list
+    :param sql_cursor: sqlite cursor
+    :param table_name: table name to get the column names from
+    :return: a list with table column names
+    """
+    con = sl.connect(holder_DB_FILE_PATH)
+    if con is not None:
+        c = con.cursor()
+
+        table_column_names = 'PRAGMA table_info(' + table_name + ');'
+        c.execute(table_column_names)
+        table_column_names = c.fetchall()
+
+        column_names = list()
+
+        for name in table_column_names:
+            column_names.append(name[1])
+
+        return column_names
+    else:
+        print('Connection to database failed')
+
+# if __name__ == '__main__':
+#     insert_values_to_table('imdb_temp', holder_CSV_FILE_PATH)
+
+insert_values_to_table(holder_TABLE_NAME,holder_CSV_FILE_PATH)
+get_column_names_from_db_table('sqlite cursor',holder_TABLE_NAME)
+
+#INSERT CREW=============================================================================================================
+holder_DB_FILE_PATH = 'test.db'
+holder_CSV_FILE_PATH = 'crew.csv'
+holder_TABLE_NAME = 'CREWS'
+def insert_values_to_table(table_name, csv_file_path):
+    holder_DB_FILE_PATH = 'test.db'
+    holder_CSV_FILE_PATH = 'crew.csv'
+    holder_TABLE_NAME = 'CREWS'
+    DB_FILE_PATH = holder_DB_FILE_PATH
+    CSV_FILE_PATH = holder_CSV_FILE_PATH 
+
+    """
+    Open a csv file with pandas, store its content in a pandas data frame, change the data frame headers to the table
+    column names and insert the data to the table
+    :param table_name: table name in the database to insert the data into
+    :param csv_file: path of the csv file to process
+    :return: None
+    """
+    con = sl.connect(holder_DB_FILE_PATH)
+    if con is not None:
+        c = con.cursor()
+
+        df = pd.read_csv(holder_CSV_FILE_PATH)
+        df.columns = get_column_names_from_db_table(c, holder_TABLE_NAME)
+        df.to_sql(name=table_name, con=con, if_exists='append', index=False)
+
+        con.close()
+        print('===Crew Columns returned===')
+        print('Crew SQL insert process finished')
+    else:
+        print('Connection to database failed')
+
+def get_column_names_from_db_table(sql_cursor, table_name):
+    """
+    Scrape the column names from a database table to a list
+    :param sql_cursor: sqlite cursor
+    :param table_name: table name to get the column names from
+    :return: a list with table column names
+    """
+    con = sl.connect(holder_DB_FILE_PATH)
+    if con is not None:
+        c = con.cursor()
+
+        table_column_names = 'PRAGMA table_info(' + table_name + ');'
+        c.execute(table_column_names)
+        table_column_names = c.fetchall()
+
+        column_names = list()
+
+        for name in table_column_names:
+            column_names.append(name[1])
+
+        return column_names
+    else:
+        print('Connection to database failed')
+
+# if __name__ == '__main__':
+#     insert_values_to_table('imdb_temp', holder_CSV_FILE_PATH)
+
+insert_values_to_table(holder_TABLE_NAME,holder_CSV_FILE_PATH)
+get_column_names_from_db_table('sqlite cursor',holder_TABLE_NAME)
+
+
+#INSERT USER REPORT=============================================================================================================
+holder_DB_FILE_PATH = 'test.db'
+holder_CSV_FILE_PATH = 'userreport.csv'
+holder_TABLE_NAME = 'USERREPORT'
+def insert_values_to_table(table_name, csv_file_path):
+    holder_DB_FILE_PATH = 'test.db'
+    holder_CSV_FILE_PATH = 'userreport.csv'
+    holder_TABLE_NAME = 'USERREPORT'
+    DB_FILE_PATH = holder_DB_FILE_PATH
+    CSV_FILE_PATH = holder_CSV_FILE_PATH 
+
+    """
+    Open a csv file with pandas, store its content in a pandas data frame, change the data frame headers to the table
+    column names and insert the data to the table
+    :param table_name: table name in the database to insert the data into
+    :param csv_file: path of the csv file to process
+    :return: None
+    """
+    con = sl.connect(holder_DB_FILE_PATH)
+    if con is not None:
+        c = con.cursor()
+
+        df = pd.read_csv(holder_CSV_FILE_PATH)
+        df.columns = get_column_names_from_db_table(c, holder_TABLE_NAME)
+        df.to_sql(name=table_name, con=con, if_exists='append', index=False)
+
+        con.close()
+        print('===User Report Columns returned===')
+        print('User Report SQL insert process finished')
+    else:
+        print('Connection to database failed')
+
+def get_column_names_from_db_table(sql_cursor, table_name):
+    """
+    Scrape the column names from a database table to a list
+    :param sql_cursor: sqlite cursor
+    :param table_name: table name to get the column names from
+    :return: a list with table column names
+    """
+    con = sl.connect(holder_DB_FILE_PATH)
+    if con is not None:
+        c = con.cursor()
+
+        table_column_names = 'PRAGMA table_info(' + table_name + ');'
+        c.execute(table_column_names)
+        table_column_names = c.fetchall()
+
+        column_names = list()
+
+        for name in table_column_names:
+            column_names.append(name[1])
+
+        return column_names
+    else:
+        print('Connection to database failed')
+
+# if __name__ == '__main__':
+#     insert_values_to_table('imdb_temp', holder_CSV_FILE_PATH)
+
+insert_values_to_table(holder_TABLE_NAME,holder_CSV_FILE_PATH)
+get_column_names_from_db_table('sqlite cursor',holder_TABLE_NAME)
+
+
+#WORK ORDER DATABASE TABLE=============================================================================================================
+holder_DB_FILE_PATH = 'test.db'
+holder_CSV_FILE_PATH = 'work_orders.csv'
+holder_TABLE_NAME = 'WORK_ORDERS'
+def insert_values_to_table(table_name, csv_file_path):
+    holder_DB_FILE_PATH = 'test.db'
+    holder_CSV_FILE_PATH = 'work_orders.csv'
+    holder_TABLE_NAME = 'WORK_ORDERS'
+    DB_FILE_PATH = holder_DB_FILE_PATH
+    CSV_FILE_PATH = holder_CSV_FILE_PATH 
+
+    """
+    Open a csv file with pandas, store its content in a pandas data frame, change the data frame headers to the table
+    column names and insert the data to the table
+    :param table_name: table name in the database to insert the data into
+    :param csv_file: path of the csv file to process
+    :return: None
+    """
+    con = sl.connect(holder_DB_FILE_PATH)
+    if con is not None:
+        c = con.cursor()
+
+        df = pd.read_csv(holder_CSV_FILE_PATH)
+        df.columns = get_column_names_from_db_table(c, holder_TABLE_NAME)
+        df.to_sql(name=table_name, con=con, if_exists='append', index=False)
+
+        con.close()
+        print('===Work Orders Columns returned===')
+        print('Work Orders SQL insert process finished')
+    else:
+        print('Connection to database failed')
+
+def get_column_names_from_db_table(sql_cursor, table_name):
+    """
+    Scrape the column names from a database table to a list
+    :param sql_cursor: sqlite cursor
+    :param table_name: table name to get the column names from
+    :return: a list with table column names
+    """
+    con = sl.connect(holder_DB_FILE_PATH)
+    if con is not None:
+        c = con.cursor()
+
+        table_column_names = 'PRAGMA table_info(' + table_name + ');'
+        c.execute(table_column_names)
+        table_column_names = c.fetchall()
+
+        column_names = list()
+
+        for name in table_column_names:
+            column_names.append(name[1])
+
+        return column_names
+        con.close()
+    else:
+        print('Connection to database failed')
+
+# if __name__ == '__main__':
+#     insert_values_to_table('imdb_temp', holder_CSV_FILE_PATH)
+
+insert_values_to_table(holder_TABLE_NAME,holder_CSV_FILE_PATH)
+get_column_names_from_db_table('sqlite cursor',holder_TABLE_NAME)
+
+# #WORK ORDER APPLICATION VIEW====================================================================================================
+# def createViewWO():
+#     holder_DB_FILE_PATH = 'test.db'
+#     con = sl.connect(holder_DB_FILE_PATH)
+#     if con is not None:
+#         c = con.cursor()
+#         c.execute("""
+#             DROP TABLE IF EXISTS WORK_ORDER_VIEW
+#             ;
+#             """)
+#         c.execute("""
+#             CREATE TABLE IF NOT EXISTS WORK_ORDER_VIEW (
+#                 wo_id INTEGER PRIMARY KEY,
+#                 user_id INTEGER,
+#                 report_id INTEGER,
+#                 hole_size INTEGER,
+#                 crew_name TEXT,
+#                 crew_size INTEGER,
+#                 equipment_assigned TEXT,
+#                 estimated_hours NUMERIC,
+#                 status TEXT,
+#                 material_quantity NUMERIC,
+#                 cost_of_repair NUMERIC,
+#                 crew_assigned BOOLEAN
+#             );
+#             """)
+#         c.execute("""
+#             INSERT INTO WORK_ORDER_VIEW 
+#             SELECT
+#                 wo.wo_id as wo_id,
+#                 wo.user_id as user_id,
+#                 ur.report_id as report_id,
+#                 null as hole_size,
+#                 cr.crew_name as crew_name,
+#                 cr.crew_size as crew_size,
+#                 eq.equipment_name as equipment_assigned,
+#                 null as estimated_hours,
+#                 null as status,
+#                 null as material_quantity,
+#                 null as cost_of_repair,
+#                 0 as crew_assigned
+#             FROM WORK_ORDERS wo
+#             LEFT JOIN USERREPORT ur ON (
+#                 wo.report_id = ur.report_id
+#             )
+#             LEFT JOIN CREWS cr ON (
+#                 wo.crew_id = cr.crew_id
+#             )
+#             LEFT JOIN EQUIPMENT eq ON (
+#                 cr.equipment_assigned = eq.equipment_id
+#             );
+#             """)
+#         con.commit()
+#         con.close()
+# createViewWO()
+# END DATABASE CONSTRUCTION
+#==========================================
+# RENDER WORK ORDER TABLE====================================================================================================
+# def renderTableWO():
+#     con = sl.connect('test.db')
+#     query_list = []
+#     if con is not None:
+#         c = con.cursor()
+#         c.execute("SELECT * FROM WORK_ORDERS")
+
+#         rows = c.fetchall()
+
+#         for row in rows:
+#             query_list.append(row)
+#         print(query_list)
+#         return query_list
+
+# RENDER WORK ORDER VIEW====================================================================================================
+# def renderViewWO():
+#     con = sl.connect('test.db')
+#     query_list = []
+#     if con is not None:
+#         c = con.cursor()
+#         c.execute("SELECT * FROM WORK_ORDER_VIEW")
+
+#         rows = c.fetchall()
+
+#         for row in rows:
+#             query_list.append(row)
+#         print(query_list)
+#         return query_list
+
+#CUSTOM QUERY================================================================================================================
+def queryDB():
+    con = sl.connect('test.db')
+    query_list = []
+    if con is not None:
+        c = con.cursor()
+        c.execute(input())
+
+        rows = c.fetchall()
+
+        for row in rows:
+            query_list.append(row)
+        print(query_list)
+        return query_list
+
+# GUI CONSTRUCTION================================================================================================================
+try:
+    class My_GUI(Tk):
+
+        def __init__(self, *args, **kwargs):
+            Tk.__init__(self, *args, **kwargs)
+
+            self.title_font = tkfont.Font(family='Helvetica', size=18, weight="bold", slant="italic")
+
+            container = tk.Frame(self)
+            container.pack(side="top", fill="both", expand=True)
+            container.grid_rowconfigure(0, weight=1)
+            container.grid_columnconfigure(0, weight=1)
+
+            self.frames = {}
+            for F in (StartPage, Page_2, Page_3, Page_4):
+                page_name = F.__name__
+                frame = F(parent=container, controller=self)
+                self.frames[page_name] = frame
+
+                frame.grid(row=0, column=0, sticky="nsew")
+
+            self.show_frame("StartPage")
+
+        def show_frame(self, page_name):
+            '''Show a frame for the given page name'''
+            frame = self.frames[page_name]
+            frame.tkraise() 
+except:
+    print("GUI Initialization Error")
+try:
+    class StartPage(Frame):
+        #Initialize Screen
+        def __init__(self, parent, controller):
+            authenticated=0
+
+            Frame.__init__(self, parent)
+            self.controller = controller
+            label = Label(self, text="Login", font=controller.title_font)
+            label.pack(side="top", fill="x", pady=10)
+
+
+            #Labels
+            username_label = Label(self, text="Username")
+            username_label.pack(side="top", fill="x", pady=0)
+            password_label = Label(self, text="Password")
+            password_label.pack(side="top", fill="x", pady=0)
+
+            #WO_Fields
+            username_entry = Entry(self)
+            username_entry.pack(pady=1)
+            password_entry = Entry(self)
+            password_entry.pack(pady=1)
+
+            button1 = Button(self, text="Login",
+                                command=lambda: login())
+            button1.pack()
+
+            button2 = Button(self, text="Quit",
+                                command=lambda: quit())
+            button2.pack()
+
+            def login():
+                #connect to db
+                con = sl.connect('test.db')
+                c = con.cursor()
+
+                #retrieve input
+                print("logging in...")
+                login_data = str(username_entry.get())+str(password_entry.get())
+                # print(login_data)
+
+                #check input against database
+                check_login = f"SELECT username||password FROM USERS WHERE username = '{username_entry.get()}' AND username = '{password_entry.get()}'"
+                c.execute(check_login)
+                username_result = c.fetchall()
+                #print(username_result)
+                # if login_data == 
+                if len(username_result) != 0:
+                    authenticated=1
+                    c1 = con.cursor()
+                    session = f"INSERT INTO SESSION SELECT user_id, name, username, password FROM USERS WHERE username = '{username_entry.get()}' AND username = '{password_entry.get()}'"
+                    c1.execute(session)
+                    con.commit()
+                    print("Authenticated")
+
+                    # #insert check
+                    # c2 = con.cursor()
+                    # session = f"SELECT * FROM SESSION"
+                    # c2.execute(session)
+                    # print(c2.fetchall())
+                else:
+                    authenticated=0
+                    print("Authentication Failed")
+                if authenticated == 1:
+                    return controller.show_frame("Page_2")
+                else:
+                   print("Post Login Failed")           
+
+except:
+    print("Login Page Error")
+
+try:
+    class Page_2(Frame):
+
+        def __init__(self, parent, controller):
+            Frame.__init__(self, parent)
+            self.controller = controller
+            label = Label(self, text="Main Menu", font=controller.title_font)
+            label.pack(side="top", fill="x", pady=10)
+
+            button1 = Button(self, text="Submit a Case",
+                                command=lambda: controller.show_frame("Page_4"))
+            button1.pack()
+
+            button2 = Button(self, text="Review Cases",
+                                command=lambda: controller.show_frame("Page_3"))
+            button2.pack()
+
+            button3 = Button(self, text="Quit",
+                                command=lambda: quit())
+            button3.pack()
+except:
+    print("Main Menu Error")
+
+try:
+    class Page_3(Frame):
+
+        def __init__(self, parent, controller):
+            Frame.__init__(self, parent)
+            self.controller = controller
+            label = Label(self, text="Cases", font=controller.title_font)
+            label.pack(side="top", fill="x", pady=10)
+
+            # button1 = Button(self, text="View Reports",
+            #                 command=lambda: print('View not yet available, requires database restructure'))
+            # button1.pack()
+
+            button2 = Button(self, text="Generate Work Order/Damages",
+                            command=lambda: generate_workorder())
+            button2.pack()
+            
+            button3 = Button(self, text="Main Menu",
+                            command=lambda: controller.show_frame("Page_2"))
+            button3.pack(pady=20)
+
+            # def view_reports():
+            #     con = sl.connect('test.db')
+            #     c = con.cursor()
+
+
+            #     con.execute(insert)
+
+            #     con.close()
+
+
+            def generate_workorder():
+                con = sl.connect('test.db')
+
+                # session = con.cursor()
+                # session_id = f"SELECT user_id FROM SESSION"
+                # session.execute(session_id)
+                # id_result = session.fetchall()
+                # print(id_result)
+                
+                c = con.cursor()
+                wo_gen = f"""SELECT * FROM WORK_ORDERS;
+                                """
+                c.execute(wo_gen)
+                wo_res = c.fetchall()
+                print('WORK ORDERS')
+                print(wo_res)
+                df1=pd.DataFrame(wo_res)
+                # df1.columns = 
+                print(df1)
+
+                df1.to_csv('work_orders.csv',header=['wo_id','user_id','report_id','crew_id','equipment_id','estimated_hours','status','material_quantity','cost_of_repair','crew_assigned'],index=False,mode="w+")
+
+                c1 = con.cursor()
+                dmg_gen = f"""SELECT * FROM DAMAGE;
+                                """
+                c1.execute(dmg_gen)
+                dmg_res = c1.fetchall()
+                print('DAMAGES')
+                print(dmg_res)
+                df2=pd.DataFrame(dmg_res)
+                # df1.columns = 
+                print(df2)
+
+                df2.to_csv('damage.csv',header=['user_id','report_id','damage','address','damage_type','phone'],index=False,mode="w+")
+
+                con.close()
+
+except:
+    print("Cases page error")
+
+try:
+    class Page_4(Frame):
+    
+        def __init__(self, parent, controller):
+            Frame.__init__(self, parent)
+            self.controller = controller
+            label = Label(self, text="Submission Sheet", font=controller.title_font)
+            label.pack(side="top", fill="x", pady=10)
+
+
+            street_label = Label(self, text="Street Name")
+            location_label = Label(self, text="Location")
+            district_label = Label(self, text="District")
+            size_label = Label(self, text="Pothole Size")
+
+            street_label.pack(side="top", fill="x", pady=5)
+            location_label.pack(side="top", fill="x", pady=5)
+            district_label.pack(side="top", fill="x", pady=5)
+            size_label.pack(side="top", fill="x", pady=5)
+
+            street_entry = Entry(self)
+            location_dropdown = ttk.Combobox(self, text="location", value=["curb","shoulder","middle","lane"])
+            district_dropdown = ttk.Combobox(self, value=["District 1","District 2"])
+            size_dropdown = ttk.Combobox(self, value=["1","2","3","4","5","6","7","8","9","10"])
+
+            street_entry.pack(side="top", fill="x", pady=5)
+            location_dropdown.pack(side="top", fill="x", pady=5)
+            district_dropdown.pack(side="top", fill="x", pady=5)
+            size_dropdown.pack(side="top", fill="x", pady=5)
+
+            #Damage Report Fields
+
+            damage_label = Label(self, text="Damage Amount")
+            home_address_label = Label(self, text="Home Address")
+            type_of_damage = Label(self, text="Damage Type")
+            phone_number = Label(self, text="Phone")
+
+            damage_label.pack(side="top", fill="x", pady=5)
+            home_address_label.pack(side="top", fill="x", pady=5)
+            type_of_damage.pack(side="top", fill="x", pady=5)
+            phone_number.pack(side="top", fill="x", pady=5)
+
+            damage_entry = Entry(self)
+            address_entry = Entry(self)
+            damage_type_dropdown = ttk.Combobox(self, value=["Automobile","Bicycle","Motorcycle"])
+            phone_entry = Entry(self)
+
+            damage_entry.pack(side="top", fill="x", pady=5)
+            address_entry.pack(side="top", fill="x", pady=5)
+            damage_type_dropdown.pack(side="top", fill="x", pady=5)
+            phone_entry.pack(side="top", fill="x", pady=5)
+
+            button1 = Button(self, text="Main Menu",
+                            command=lambda: controller.show_frame("Page_2"))
+            button1.pack(side="bottom",pady=15)
+
+            button2 = Button(self, text="Submit",
+                            command=lambda: (submit(), dmg_report()))
+            button2.pack(side="bottom",pady=1)
+
+            def submit():
+                con = sl.connect('test.db')
+
+                session = con.cursor()
+                session_id = f"SELECT user_id FROM SESSION"
+                session.execute(session_id)
+                id_result = session.fetchall()
+                # print(id_result) 
+
+                c = con.cursor()
+                if len(f'{street_entry.get()}') > 0 and len(f'{location_dropdown.get()}') and len(f'{district_dropdown.get()}') and len(f'{size_dropdown.get()}'):
+                    insert = f"INSERT INTO USERREPORT VALUES (NULL, '{id_result[0][0]}','{street_entry.get()}','{location_dropdown.get()}','{district_dropdown.get()}','{size_dropdown.get()}');"
+                    c.execute(insert)
+                    con.commit()
+
+                    #Insert Check
+                    check_submit = f"SELECT * FROM USERREPORT"
+                    c.execute(check_submit)
+                    submit_result = c.fetchall()
+                    print(submit_result)
+                    print("Submitted")
+
+                    #WO Line Generation
+                    wo_new_script = f"""INSERT INTO WORK_ORDERS (wo_id,user_id,report_id,crew_id,equipment_id,estimated_hours,status,material_quantity,cost_of_repair,crew_assigned)
+                                        VALUES (
+                                            NULL,
+                                            '{id_result[0][0]}',
+                                            NULL,
+                                            1,
+                                            NULL,
+                                            10,
+                                            'Pending',
+                                            50,
+                                            NULL,
+                                            1
+                                            );
+                                    """
+                    c.execute(wo_new_script)
+                    wo_line = c.fetchall()
+                    #print(wo_line)
+                    con.commit()
+
+                    #WO Line Population
+                    c = con.cursor()
+                    wo_new_script = f"""UPDATE WORK_ORDERS
+                                        SET report_id = (SELECT MAX(report_id) FROM USERREPORT)
+                                        WHERE wo_id = (SELECT MAX(wo_id) FROM WORK_ORDERS)
+                                    """
+                    c.execute(wo_new_script)
+                    con.commit()
+                    #Equipment Population
+                    c = con.cursor()
+                    wo_new_script = f"""UPDATE WORK_ORDERS
+                                        SET equipment_id = (SELECT equipment_id FROM EQUIPMENT WHERE crew_id = 1)
+                                        WHERE wo_id = (SELECT MAX(wo_id) FROM WORK_ORDERS)
+                                    """
+                    c.execute(wo_new_script)
+                    con.commit()
+                    #Cost Estimate Population
+                    c = con.cursor()
+                    wo_new_script = f"""UPDATE WORK_ORDERS
+                                        SET cost_of_repair = 1000
+                                        WHERE wo_id = (SELECT MAX(wo_id) FROM WORK_ORDERS)
+                                    """
+                    c.execute(wo_new_script)
+                    con.commit()
+                    #Print WORK_ORDERS
+                    c = con.cursor()
+                    wo_new_script = f"""SELECT * FROM WORK_ORDERS
+                                    """
+                    c.execute(wo_new_script)
+                    wo_results = c.fetchall()
+                    print(wo_results)
+
+                else:
+                    print("Please Provide All Values")
+                con.close()
+
+            def dmg_report():
+                    con = sl.connect('test.db')
+
+                    session = con.cursor()
+                    session_id = f"SELECT user_id FROM SESSION"
+                    session.execute(session_id)
+                    id_result = session.fetchall()
+                    # print(id_result) 
+
+                    c = con.cursor()
+                    if len(f'{damage_entry.get()}') > 0 and len(f'{address_entry.get()}') and len(f'{damage_type_dropdown.get()}') and len(f'{phone_entry.get()}'):
+                        insert = f"INSERT INTO DAMAGE VALUES (NULL, '{id_result[0][0]}','{damage_entry.get()}','{address_entry.get()}','{damage_type_dropdown.get()}','{phone_entry.get()}');"
+                        c.execute(insert)
+                        con.commit()
+
+                        #Insert Check
+                        check_submit = f"SELECT * FROM DAMAGE"
+                        c.execute(check_submit)
+                        submit_result = c.fetchall()
+                        print(submit_result)
+                        print("Submitted")
+
+                    else:
+                        print("Please Provide All Values")
+                    con.close()
+
+except:
+    print("Submission Page Error")
+
+if __name__ == "__main__":
+    app = My_GUI()
+    app.mainloop()
