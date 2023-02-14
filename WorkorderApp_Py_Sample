@@ -382,6 +382,67 @@ def get_column_names_from_db_table(sql_cursor, table_name):
 insert_values_to_table(holder_TABLE_NAME,holder_CSV_FILE_PATH)
 get_column_names_from_db_table('sqlite cursor',holder_TABLE_NAME)
 
+#INSERT DAMAGE=============================================================================================================
+holder_DB_FILE_PATH = 'test.db'
+holder_CSV_FILE_PATH = 'damage.csv'
+holder_TABLE_NAME = 'DAMAGE'
+def insert_values_to_table(table_name, csv_file_path):
+    holder_DB_FILE_PATH = 'test.db'
+    holder_CSV_FILE_PATH = 'damage.csv'
+    holder_TABLE_NAME = 'DAMAGE'
+    DB_FILE_PATH = holder_DB_FILE_PATH
+    CSV_FILE_PATH = holder_CSV_FILE_PATH 
+
+    """
+    Open a csv file with pandas, store its content in a pandas data frame, change the data frame headers to the table
+    column names and insert the data to the table
+    :param table_name: table name in the database to insert the data into
+    :param csv_file: path of the csv file to process
+    :return: None
+    """
+    con = sl.connect(holder_DB_FILE_PATH)
+    if con is not None:
+        c = con.cursor()
+
+        df = pd.read_csv(holder_CSV_FILE_PATH)
+        df.columns = get_column_names_from_db_table(c, holder_TABLE_NAME)
+        df.to_sql(name=table_name, con=con, if_exists='append', index=False)
+
+        con.close()
+        print('===Damage Columns returned===')
+        print('Damage SQL insert process finished')
+    else:
+        print('Connection to database failed')
+
+def get_column_names_from_db_table(sql_cursor, table_name):
+    """
+    Scrape the column names from a database table to a list
+    :param sql_cursor: sqlite cursor
+    :param table_name: table name to get the column names from
+    :return: a list with table column names
+    """
+    con = sl.connect(holder_DB_FILE_PATH)
+    if con is not None:
+        c = con.cursor()
+
+        table_column_names = 'PRAGMA table_info(' + table_name + ');'
+        c.execute(table_column_names)
+        table_column_names = c.fetchall()
+
+        column_names = list()
+
+        for name in table_column_names:
+            column_names.append(name[1])
+
+        return column_names
+    else:
+        print('Connection to database failed')
+
+# if __name__ == '__main__':
+#     insert_values_to_table('imdb_temp', holder_CSV_FILE_PATH)
+
+insert_values_to_table(holder_TABLE_NAME,holder_CSV_FILE_PATH)
+get_column_names_from_db_table('sqlite cursor',holder_TABLE_NAME)
 
 #WORK ORDER DATABASE TABLE=============================================================================================================
 holder_DB_FILE_PATH = 'test.db'
@@ -914,3 +975,4 @@ except:
 if __name__ == "__main__":
     app = My_GUI()
     app.mainloop()
+
