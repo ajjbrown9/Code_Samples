@@ -1,0 +1,340 @@
+import sys
+from datetime import date
+import os
+from statistics import mean
+import pandas as pd
+import json
+import numpy as np
+try:
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pandas'])
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'numpy'])
+    print('Import Check Complete')
+except:
+    print('Import Check Failed')
+
+#=== RUNTIME PARAMETERS ===
+# N/A
+
+#================= PROJECT VARIABLES ====================
+#Communication
+proj_Comp = 0
+comm_Comp = 0
+req_Comp = 0
+
+#Planning
+planning_Comp = 0
+cost_Est = 0
+projStart_Date = date(2022,1,1) #Project Start Date
+projEnd_Date = date(2099,1,1)
+resDev_Gath = 0 #Development Resources gathered binary flag
+resSup_Gath = 0 #Support Resources gathered binary flag
+fund_Clr = 0 #Funds cleared binary flag
+fund_Allocated = 0
+
+#Modelling
+modelling_Comp = 0
+proto_Comp = 0
+specDoc_Comp = 0
+processFlow_Comp = 0
+
+#Construction
+construction_Comp = 0
+sitTested = date(2099,1,1)
+sit_Comp = 0
+sitTested = date(2099,1,1)
+uat_Comp = 0
+
+#Deployment
+dep_Comp = 0 # binary, dependent on allIssuesResolved
+live = 0
+live_Date = date(2099,1,1)
+supp_Init = 0 #binary
+allIssuesResolved = 0 #Binary
+minorIssues = 0 #int
+majorIssues = 0 #int
+
+#Checks - These checks will be prompted upon phase end (comp flag = 1, or live = 1)
+minorIssue_Thresh = 3 #used to suggest project review
+majorIssue_Thresh = 1 #used to suggest project review
+fund_Risk = 0 #This will be a case when
+fund_Expended = 0
+majorIssue_Reported = 0
+minorIssue_Reported = 0
+
+#================CLASS VARIABLES===============
+empID = [0,1]
+firstName = ["Jessica", "Tyrone"]
+lastName = ["Carney", "Brown"]
+req_Comp = [0,0]
+emp_fund_Clr = [0,0]
+emp_cost_Est = [0,0]
+emp_projStart_Finalized = [0,0]
+emp_projEnd_Finalized = [0,0]
+emp_resDev_Gath = [0,0]
+emp_resSup_Gath = [0,0]
+emp_fund_Allocated = [0,0]
+emp_designSpec_approve = [0,0]
+emp_designProto_approve = [0,0]
+emp_designFlow_approve = [0,0]
+emp_codeSIT_tested = [0,0]
+emp_codeUAT_tested = [0,0]
+emp_live = [0,0]
+emp_majorIssues = [0,0]
+emp_minorIssues = [0,0]
+
+
+id = 0
+
+#============== DICTIONARIES ===============
+empProfile = {}
+empProfile[id] = {
+    "id": empID[id],
+    "first_name": firstName[id],
+    "last_name": lastName[id],
+    "requirements_complete": req_Comp[id],
+    "funds_cleared": emp_fund_Clr[id],
+    "cost_estimates": emp_cost_Est[id],
+    "project_start_date": emp_projStart_Finalized[id],
+    "project_end_date": emp_projEnd_Finalized[id],
+    "developers_chosen": emp_resDev_Gath[id],
+    "support_chosen": emp_resSup_Gath[id],
+    "funds_allocated": emp_fund_Allocated[id],
+    "design_spec_approved": emp_designSpec_approve[id],
+    "prototype_approved": emp_designProto_approve[id],
+    "flow_approved": emp_designFlow_approve[id],
+    "SIT_complete": emp_codeSIT_tested[id],
+    "UAT_complete": emp_codeUAT_tested[id],
+    "project_live": emp_live[id],
+    "major_issues_reported": emp_majorIssues[id],
+    "minor_issues_reported": emp_minorIssues[id]
+}
+for id in empID:
+    empProfile[id] = {
+        "id": empID[id],
+        "first_name": firstName[id],
+        "last_name": lastName[id],
+        "requirements_complete": req_Comp[id],
+        "funds_cleared": emp_fund_Clr[id],
+        "cost_estimates": emp_cost_Est[id],
+        "project_start_date": emp_projStart_Finalized[id],
+        "project_end_date": emp_projEnd_Finalized[id],
+        "developers_chosen": emp_resDev_Gath[id],
+        "support_chosen": emp_resSup_Gath[id],
+        "funds_allocated": emp_fund_Allocated[id],
+        "funds_allocated": emp_fund_Allocated[id],
+        "design spec approved": emp_designSpec_approve[id],
+        "prototype approved": emp_designProto_approve[id],
+        "flow approved": emp_designFlow_approve[id],
+        "SIT complete": emp_codeSIT_tested[id],
+        "UAT complete": emp_codeUAT_tested[id],
+        "project live": emp_live[id],
+        "major issues reported": emp_majorIssues[id],
+        "minor issues reported": emp_minorIssues[id]
+    }
+#============== CLASSES ==============
+class Brown:
+    def __init__(self,
+                firstName,
+                lastName,
+                empID,
+                req_Comp,
+                emp_fund_Clr,
+                emp_cost_Est,
+                emp_projStart_Finalized,
+                emp_projEnd_Finalized,
+                emp_resDev_Gath,
+                emp_resSup_Gath,
+                emp_fund_Allocated,
+                emp_designSpec_approve,
+                emp_designProto_approve,
+                emp_designFlow_approve,
+                emp_codeSIT_tested,
+                emp_codeUAT_tested,
+                emp_live,
+                emp_majorIssues,
+                emp_minorIssues
+                ):
+        self.empID = empID
+        self.firstName = firstName
+        self.lastName = lastName
+        #Communication
+        self.req_Comp = int(input('Are all requirements finalized? - Enter 1 for Yes; 0 for No'))
+        #Planning
+        self.emp_fund_Clr = int(input('Funding cleared? - Enter 1 for Cleared; 0 for Not Cleared:'))
+        self.emp_cost_Est = float(input('Enter estimated cost (i.e. 400000.37):'))
+        self.emp_projStart_Finalized = int(input('Start date finalized? - Enter 1 for Finalized; 0 for Not Finalized:'))
+        self.emp_projEnd_Finalized = int(input('End date finalized? - Enter 1 for Finalized; 0 for Not Finalized:'))
+        self.emp_resDev_Gath = int(input('Enter 1 for developer team selected; 0 for Not Selected:'))
+        self.emp_resSup_Gath = int(input('Enter 1 for supported members selected; 0 for Not Selected:'))
+        self.emp_fund_Allocated = float(input('Enter the funds allocated to the project:'))
+        #Modelling
+        self.emp_designSpec_approve = int(input('Design specifications approved? - Enter 1 for Yes; 0 for No:'))
+        self.emp_designProto_approve = int(input('Design prototype approved? - Enter 1 for Yes; 0 for No:'))
+        self.emp_designFlow_approve = int(input('Process flows approved? - Enter 1 for Yes; 0 for No:'))
+        #Construction
+        self.emp_codeSIT_tested = int(input('System integration testing Completed? - Enter 1 for Yes; 0 for No:'))
+        self.emp_codeUAT_tested = int(input('User acceptance testing completed? - Enter 1 for Yes; 0 for No:'))
+        #Deployment
+        self.emp_live = int(input('Has the project successfully gone live? - Enter 1 for Yes; 0 for No:'))
+        self.emp_majorIssues = int(input('Enter the number of major issues outstanding (Major issues result in the failure of the minimum viable product (MVP) or denote a critical project risk:'))
+        self.emp_minorIssues = int(input('Enter the number of minor issues outstanding (Minor issues do not result in the failure of the minimum viable product (MVP) or a critical project risk:'))
+
+#=========================Execute Communications
+if (proj_Comp == 0) and (comm_Comp == 0):
+    try:
+        try:
+            for i in empID:
+                print(empID[i], lastName[i], firstName[i])
+                empResponse = Brown(firstName,
+                            lastName,
+                            empID,
+                            req_Comp,
+                            emp_fund_Clr,
+                            emp_cost_Est,
+                            emp_projStart_Finalized,
+                            emp_projEnd_Finalized,
+                            emp_resDev_Gath,
+                            emp_resSup_Gath,
+                            emp_fund_Allocated,
+                            emp_designSpec_approve,
+                            emp_designProto_approve,
+                            emp_designFlow_approve,
+                            emp_codeSIT_tested,
+                            emp_codeUAT_tested,
+                            emp_live,
+                            emp_majorIssues,
+                            emp_minorIssues
+                            )
+                req_Comp[i] = empResponse.req_Comp
+                emp_fund_Clr[i] = empResponse.emp_fund_Clr
+                emp_cost_Est[i] = empResponse.emp_cost_Est
+                emp_projStart_Finalized[i] = empResponse.emp_projStart_Finalized
+                emp_projEnd_Finalized[i] = empResponse.emp_projEnd_Finalized
+                emp_resDev_Gath[i] = empResponse.emp_resDev_Gath
+                emp_resSup_Gath[i] = empResponse.emp_resSup_Gath
+                emp_fund_Allocated[i] = empResponse.emp_fund_Allocated
+                emp_designSpec_approve[i] = empResponse.emp_designSpec_approve
+                emp_designProto_approve[i] = empResponse.emp_designProto_approve
+                emp_designFlow_approve[i] = empResponse.emp_designFlow_approve
+                emp_codeSIT_tested[i] = empResponse.emp_codeSIT_tested
+                emp_codeUAT_tested[i] = empResponse.emp_codeUAT_tested
+                emp_live[i] = empResponse.emp_live
+                emp_majorIssues[i] = empResponse.emp_majorIssues
+                emp_minorIssues[i] = empResponse.emp_minorIssues
+                print('SYSTEM MESSAGE: Factors Update Success')
+        except:
+            print('SYSTEM MESSAGE: Factors Update Failure')
+        try: #communications check
+            if sum(req_Comp)/len(req_Comp) == 1:
+                comm_Comp = 1
+                print('SYSTEM MESSAGE: Communications Update Success')
+                print('SYSTEM MESSAGE: Communications Complete')
+            elif (emp_majorIssues > 0):
+                print('WARNING: CRITICAL ISSUE')
+            elif (emp_fund_Allocated < emp_cost_Est):
+                print('WARNING: BUDGET RISK')
+            else:
+                comm_Comp = 0
+                print('SYSTEM MESSAGE: Communications Update Success')
+                print('SYSTEM MESSAGE: Communications Incomplete')
+        except:
+            print('SYSTEM MESSAGE: Current Phase: COMMUNICATIONS - Communication factors incomplete. Please Review Prior to Proceeding')
+        try: #planning check
+            if (comm_Comp == 1) and (sum(emp_fund_Clr)/len(emp_fund_Clr) == 1) and (sum(emp_projStart_Finalized)/len(emp_projStart_Finalized) == 1) and (sum(emp_resDev_Gath)/len(emp_resDev_Gath) == 1)  and (sum(emp_fund_Allocated) > 0):
+                planning_Comp = 1 # Depends on (1) Funds being cleared, (2) Start Date being finalized, (3) Dev Team being finalized, and (4) Allocated Funds being above 0.
+                print('SYSTEM MESSAGE: Planning Factors Update Success')
+                print('SYSTEM MESSAGE: Planning Factors Sufficient to Proceed')
+            elif (emp_majorIssues > 0):
+                print('WARNING: CRITICAL ISSUE')
+            elif (emp_fund_Allocated < emp_cost_Est):
+                print('WARNING: BUDGET RISK')
+            else:
+                planning_Comp = 0
+                print('SYSTEM MESSAGE: Planning Factors Update Success')
+                print('SYSTEM MESSAGE: Current Phase: PLANNING - Planning Factors Insufficient. Please Review Prior to Proceeding.')
+        except:
+            print('SYSTEM MESSAGE: Current Phase: PLANNING - Planning Factors Insufficient. Please Review Prior to Proceeding.')
+        try: #modelling check
+            if (planning_Comp == 1) and (sum(emp_designSpec_approve)/len(emp_designSpec_approve) == 1) and (sum(emp_designProto_approve)/len(emp_designProto_approve) == 1) and (sum(emp_designFlow_approve)/len(emp_designFlow_approve) == 1):
+                modelling_Comp = 1 # Depends on Design, Prototype, and Flow being approved by all parties.
+                print('SYSTEM MESSAGE: Modelling Factors Update Success')
+                print('SYSTEM MESSAGE: Model Complete')
+            elif (emp_majorIssues > 0):
+                print('WARNING: CRITICAL ISSUE')
+            elif (emp_fund_Allocated < emp_cost_Est):
+                print('WARNING: BUDGET RISK')
+            else:
+                modelling_Comp = 0 # 
+                print('SYSTEM MESSAGE Modelling Factors Update Success')
+                print('SYSTEM MESSAGE: Current Phase: MODELLING - Model Factors Insufficient. Review Design Documentaion, Specs, and Prototype Prior to Proceeding.')
+        except:
+            print('SYSTEM MESSAGE: Current Phase: MODELLING - Model Factors Insufficient. Review Design Documentaion, Specs, and Prototype Prior to Proceeding.')
+        try: #construction check
+            if (modelling_Comp == 1) and (sum(emp_codeSIT_tested)/len(emp_codeSIT_tested) == 1) and (sum(emp_codeUAT_tested)/len(emp_codeUAT_tested) == 1):
+                construction_Comp = 1 # Depends on SIT and UAT Completion
+                print('SYSTEM MESSAGE: Construction Factors Update Success')
+                print('SYSTEM MESSAGE: Construction Complete')
+            else:
+                construction_Comp = 0 # 
+                print('SYSTEM MESSAGE Construction Factors Update Success')
+                print('SYSTEM MESSAGE: Current Phase: CONSTRUCTION - Construction Factors Insufficient. Continue with Development and Testing')
+        except:
+            print('SYSTEM MESSAGE: Current Phase: CONSTRUCTION - Construction Factors Insufficient. Continue with Development and Testing')
+        try: #deployment check
+            if (construction_Comp == 1) and (sum(emp_live)/len(emp_live) == 1) and (sum(emp_majorIssues)/len(emp_majorIssues) == 0) and (sum(emp_majorIssues)/len(emp_majorIssues) < 5):
+                dep_Comp = 1 # Product is live, has no critical issues, and has less than 5 minor issues.
+                print('SYSTEM MESSAGE: Deployment Factors Update Success')
+                print('SYSTEM MESSAGE: Deployment Complete')
+            else:
+                dep_Comp = 0 # 
+                print('SYSTEM MESSAGE: Deployment Factors Update Success')
+                print('SYSTEM MESSAGE: Current Phase: DEPLOYMENT - Construction Factors Insufficient. Go-Live and Critical Issue Resolution Needed.')
+        except:
+            print('SYSTEM MESSAGE: Current Phase: DEPLOYMENT - Construction Factors Insufficient. Go-Live and Critical Issue Resolution Needed.')
+        try: #project complete check
+            if (dep_Comp == 1) and (construction_Comp == 1) and (modelling_Comp == 1) and (planning_Comp == 1) and (comm_Comp == 1):
+                proj_Comp = 1 # Product is live, has no critical issues, and has less than 5 minor issues.
+                print('SYSTEM MESSAGE: Project Complete')
+            else:
+                proj_Comp = 0 # 
+                print('SYSTEM MESSAGE: Insufficient project completion. Review ULM Phases for completion.')
+                print('SYSTEM MESSAGE: Current Phase: PROJECT CLOSEOUT')
+        except:
+            print('SYSTEM MESSAGE: Current Phase: PROJECT CLOSEOUT - Insufficient project completion. Review ULM Phases for completion.')
+    except:
+        print('SYSTEM MESSAGE: ULM Initiation Failure')
+else:
+    print('SYSTEM MESSAGE: Project is complete')
+if (sum(emp_majorIssues) > 0):
+                print('SYSTEM MESSAGE: WARNING - CRITICAL ISSUE')
+else:
+    print('SYSTEM MESSAGE: No critical issues')
+if (sum(emp_fund_Allocated)) < (.8*sum(emp_cost_Est)):
+    print('SYSTEM MESSAGE: WARNING - BUDGET RISK')
+else:
+    print('SYSTEM MESSAGE: No budget risks')
+#====================== Reporting
+metrics = ["Employee_ID",
+    'First_Name',
+    "Last_Name",
+    "Requirements_Gathered",
+    "Funds_Cleared",
+    "Cost_Estimate",
+    "Start_Date_Finalized",
+    "End_Date_Finalized",
+    "Developer_Team_Announced",
+    "Support_Team_Announced",
+    "Funds_Allocated",
+    "Design_Specifications_Approved",
+    "Prototype_Approved",
+    "Process_Flow_Approved",
+    "SIT_Complete",
+    "UAT_Complete",
+    "Product_Live",
+    "Major_Issues",
+    "Minor_Issues"]
+
+li = [empID,firstName,lastName,req_Comp,emp_fund_Clr,emp_cost_Est,emp_projStart_Finalized,emp_projEnd_Finalized,emp_resDev_Gath,emp_resSup_Gath,emp_fund_Allocated,emp_designSpec_approve,emp_designProto_approve,emp_designFlow_approve,emp_codeSIT_tested,emp_codeUAT_tested,emp_live,emp_majorIssues,emp_minorIssues]
+df = pd.DataFrame(data = li, columns = lastName)
+df.insert(loc=0, column="Metric", value=metrics)
+print(df)
