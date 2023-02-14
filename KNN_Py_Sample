@@ -1,0 +1,34 @@
+import pandas as pd
+import numpy as np
+from scipy.stats import mode
+
+
+class KNN:
+
+    def __init__(self, predict_list: list, k: int, X: pd.DataFrame, Y: pd.DataFrame):
+        self.predict_list = predict_list
+        self.k = k
+        self.X = X
+        self.Y = Y
+
+    def predict(self) -> None:
+        distances = []
+        for training_point in self.X.to_numpy():
+            distances.append(euclidean_distance(np.array(self.predict_list), training_point))
+        distances_df = pd.DataFrame(data=distances, columns=['distance'], index=self.Y.index)
+        k_nearest_neighbors = distances_df.sort_values(by=['distance'], axis=0)[:self.k]
+        neighbor_labels = self.Y.loc[k_nearest_neighbors.index]
+        predicted_label = mode(neighbor_labels).mode[0]
+        print('Predicted preference: %s' % predicted_label)
+
+
+def euclidean_distance(pt1: np.ndarray, pt2: np.ndarray):
+    return np.sqrt(np.sum(pt1-pt2)**2)
+
+
+if __name__ == '__main__':
+    dataset = pd.read_csv('cta2_data.csv')
+    predict = pd.to_numeric([input('age: '),input('height: '),input('weight: '),input('gender: ')])
+    predict_k = pd.to_numeric(input('k: '))
+    classifier = KNN(predict, predict_k, dataset.iloc[: , :4].astype(float), dataset.iloc[: , 4])
+    classifier.predict()
